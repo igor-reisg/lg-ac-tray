@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LG AC Tray</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="panel" id="panel">
+
+    <!-- ============ Tela principal ============ -->
+    <section class="view" id="view-main">
+      <header class="top">
+        <div class="room">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/><path d="M11.5 10v8"/></svg>
+          <span class="muted">Ambiente</span>
+          <strong id="room-temp">--</strong>
+        </div>
+        <button class="power" id="btn-power" aria-label="Ligar/desligar">
+          <svg viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+        </button>
+      </header>
+
+      <div class="unit" id="unit">
+        <svg viewBox="0 0 220 90" class="ac-svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="acBody" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ffffff"/>
+              <stop offset="0.7" stop-color="#e6e8ec"/>
+              <stop offset="1" stop-color="#c9ccd2"/>
+            </linearGradient>
+            <linearGradient id="acSide" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#d6d9de"/>
+              <stop offset="1" stop-color="#aeb2b9"/>
+            </linearGradient>
+          </defs>
+          <rect x="20" y="8" width="172" height="46" rx="8" fill="url(#acBody)"/>
+          <path d="M192 12 q10 2 10 10 v24 q0 8 -10 9 z" fill="url(#acSide)"/>
+          <rect x="30" y="44" width="152" height="6" rx="3" fill="#b8bcc3"/>
+          <rect x="34" y="46" width="144" height="2" rx="1" fill="#8f949c"/>
+          <circle cx="174" cy="18" r="1.6" class="led"/>
+        </svg>
+        <div class="airflow" id="airflow"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+
+      <div class="temp-row">
+        <div class="target">
+          <span id="target-temp">--</span><span class="unit-c">°C</span>
+          <div class="mode-label muted" id="mode-label"></div>
+        </div>
+        <label class="eco card" id="eco-card">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+          <span>Modo Eco</span>
+          <input type="checkbox" id="eco" class="switch">
+        </label>
+      </div>
+
+      <div class="slider-row">
+        <button class="round" id="btn-minus" aria-label="Diminuir">−</button>
+        <div class="slider-wrap">
+          <input type="range" id="slider" min="18" max="30" step="0.5" value="24">
+          <div class="slider-labels muted"><span id="min-label">18°</span><span id="max-label">30°</span></div>
+        </div>
+        <button class="round" id="btn-plus" aria-label="Aumentar">+</button>
+      </div>
+
+      <div class="tiles">
+        <button class="tile" data-menu="mode">
+          <svg viewBox="0 0 24 24" class="ico" id="mode-icon"></svg>
+          <span class="t-label">Modo</span><span class="t-value" id="mode-value">--</span>
+          <svg viewBox="0 0 24 24" class="chev"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <button class="tile" data-menu="fan">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M12 12c-3-4-1-9 2-9s3 4-2 9z"/><path d="M12 12c4-3 9-1 9 2s-4 3-9-2z"/><path d="M12 12c3 4 1 9-2 9s-3-4 2-9z"/><path d="M12 12c-4 3-9 1-9-2s4-3 9 2z"/></svg>
+          <span class="t-label">Ventilação</span><span class="t-value" id="fan-value">--</span>
+          <svg viewBox="0 0 24 24" class="chev"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <button class="tile" data-menu="sleep">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+          <span class="t-label">Sleep</span><span class="t-value" id="sleep-value">--</span>
+          <svg viewBox="0 0 24 24" class="chev"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <button class="tile" data-menu="swing">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M3 8h10a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7"/></svg>
+          <span class="t-label">Oscilação</span><span class="t-value" id="swing-value">--</span>
+          <svg viewBox="0 0 24 24" class="chev"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </div>
+
+      <div class="tiles two">
+        <button class="tile wide" data-menu="timer">
+          <svg viewBox="0 0 24 24" class="ico"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 2h6"/></svg>
+          <span class="t-label">Timer</span><span class="t-value" id="timer-value">--</span>
+          <svg viewBox="0 0 24 24" class="chev"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <button class="tile wide" id="btn-energy">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+          <span class="t-label">Energia este mês</span><span class="t-value" id="energy-value">--</span>
+          <svg viewBox="0 0 24 24" class="chev"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+      </div>
+
+      <footer class="foot">
+        <span class="status" id="status"><i class="dot"></i><span id="status-text">Conectando…</span></span>
+        <button class="icon-btn" id="btn-settings" aria-label="Configurações">
+          <svg viewBox="0 0 24 24"><path d="M4 7h10"/><path d="M18 7h2"/><circle cx="16" cy="7" r="2"/><path d="M4 17h4"/><path d="M12 17h8"/><circle cx="10" cy="17" r="2"/></svg>
+        </button>
+      </footer>
+    </section>
+
+    <!-- ============ Energia ============ -->
+    <section class="view hidden" id="view-energy">
+      <header class="sub-top">
+        <button class="icon-btn back" data-back aria-label="Voltar"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+        <h2>Consumo de energia</h2>
+      </header>
+      <div class="seg" id="energy-seg">
+        <button data-period="DAILY" class="on">30 dias</button>
+        <button data-period="MONTHLY">12 meses</button>
+      </div>
+      <div class="hero">
+        <div class="hero-num"><span id="energy-total">--</span><small>kWh</small></div>
+        <div class="muted" id="energy-caption"></div>
+      </div>
+      <div class="chart" id="chart"></div>
+      <div class="muted small" id="energy-note">Dados de consumo informados pela LG ThinQ.</div>
+    </section>
+
+    <!-- ============ Configurações ============ -->
+    <section class="view hidden" id="view-settings">
+      <header class="sub-top">
+        <button class="icon-btn back" data-back aria-label="Voltar"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+        <h2>Configurações</h2>
+      </header>
+      <form id="token-form" class="form">
+        <label>Token pessoal LG ThinQ
+          <input type="password" id="token" placeholder="thinqpat_…" autocomplete="off" spellcheck="false">
+        </label>
+        <p class="muted small">Gere em <b>connect-pat.lgthinq.com</b> com a sua conta LG.</p>
+        <label>País da conta
+          <input type="text" id="country" maxlength="2" value="BR">
+        </label>
+        <button type="submit" class="primary" id="btn-save">Salvar e conectar</button>
+        <p class="small" id="form-msg"></p>
+      </form>
+      <div class="card row">
+        <span>Iniciar com o Windows</span>
+        <input type="checkbox" id="autostart" class="switch">
+      </div>
+      <dl class="info" id="device-info"></dl>
+      <button class="ghost" id="btn-quit">Fechar o app</button>
+    </section>
+
+    <!-- menu suspenso compartilhado pelos tiles -->
+    <div class="menu hidden" id="menu"></div>
+    <div class="toast hidden" id="toast"></div>
+    <div class="tip hidden" id="tip"></div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
