@@ -305,8 +305,9 @@ function openMenu(anchor, items) {
   const ar = anchor.getBoundingClientRect();
   const mw = menu.offsetWidth, mh = menu.offsetHeight;
   let left = Math.min(ar.left - pr.left, pr.width - mw - 10);
-  let top = ar.top - pr.top - mh - 6;
-  if (top < 10) top = ar.bottom - pr.top + 6;
+  // Sempre abre para cima. Se não couber, encosta no topo do painel em vez de virar para
+  // baixo: embaixo dos tiles quase não há espaço e o painel cortaria o fim do menu.
+  const top = Math.max(10, ar.top - pr.top - mh - 6);
   menu.style.left = `${Math.max(10, left)}px`;
   menu.style.top = `${top}px`;
 }
