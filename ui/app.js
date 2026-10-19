@@ -46,11 +46,39 @@ function toast(msg) {
   toast.timer = setTimeout(() => t.classList.add("hidden"), 4500);
 }
 
+const PAT_URL = "https://connect-pat.lgthinq.com";
+
+// Códigos de erro da API ThinQ Connect (mesma tabela do SDK oficial `thinqconnect`).
+const TOKEN_HINT = `Gere um novo em ${PAT_URL.replace("https://", "")}.`;
+const ERROR_MESSAGES = {
+  "1103": `Token inválido. ${TOKEN_HINT}`,
+  "1218": `Token inválido. ${TOKEN_HINT}`,
+  "1302": `Token não encontrado (foi apagado ou copiado errado). ${TOKEN_HINT}`,
+  "1304": "Aceite os termos de uso no app LG ThinQ do celular e tente de novo.",
+  "1305": "O token não tem permissão para isso. Gere um novo marcando todas as permissões.",
+  "1306": "Limite de chamadas da LG atingido. Aguarde alguns minutos.",
+  "1307": "A LG não suporta este país. Confira o país da sua conta LG.",
+  "1308": "Sem permissão para controlar este aparelho.",
+  "1309": "A LG recusou o token. Confira se marcou todas as permissões ao criá-lo. Se ainda falhar e a sua conta LG usa login do Google, tente gerar o token numa conta criada com e-mail.",
+  "1310": "País errado para esta conta LG. Confira o país nas configurações.",
+  "1222": "O aparelho está offline.",
+  "2205": "O aparelho está num estado que não aceita comandos agora.",
+  "2207": "Comando inválido para este aparelho.",
+  "2208": "O aparelho não respondeu ao comando. Tente de novo.",
+  "2209": "O aparelho demorou para responder. Tente de novo.",
+  "2301": "O controle remoto pela internet está desativado no aparelho.",
+  "2302": "Comando não disponível no estado atual.",
+  "2303": "Comando não disponível: o aparelho está com erro.",
+  "2304": "Ligue o ar para usar este comando.",
+  "2305": "Comando não disponível neste modo.",
+};
+
+/** O back-end devolve "<status HTTP> (<código>): <mensagem>"; mostra o texto do código real. */
 function friendlyError(e) {
   const s = String(e);
-  if (s.includes("2207") || s.toLowerCase().includes("not connected")) return "O aparelho está offline.";
-  if (s.includes("2301") || s.includes("2304") || s.toLowerCase().includes("not supported")) return "Comando não disponível neste modo.";
-  if (s.includes("1218") || s.includes("1222") || s.includes("401")) return "Token inválido ou expirado. Verifique as configurações.";
+  const [, status, code] = s.match(/^(\d{3}) \((\d*)\)/) || [];
+  if (ERROR_MESSAGES[code]) return `${ERROR_MESSAGES[code]} (código ${code})`;
+  if (status === "401") return `A LG recusou o token. ${TOKEN_HINT} (${s})`;
   return s;
 }
 
@@ -72,10 +100,13 @@ function render() {
 
   const slider = $("slider");
   slider.disabled = templess;
+  applyTempRange(mode);
   if (!tempTimer && target != null) slider.value = target;
   updateSliderFill();
 
   $("eco").checked = !!get(st, "powerSave.powerSaveEnabled");
+  $("light-card").classList.toggle("hidden", !writable("display.light"));
+  $("display-light").checked = get(st, "display.light") !== "OFF";
 
   $("mode-value").textContent = MODE_LABELS[mode] || mode || "--";
   $("mode-icon").innerHTML = MODE_ICONS[mode] || MODE_ICONS.AUTO;
@@ -109,6 +140,26 @@ function render() {
 function setStatus(kind, text) {
   $("status").className = `status ${kind}`;
   $("status-text").textContent = text;
+  $("status").title = text;
+}
+
+const MODE_TEMP_KEY = { COOL: "coolTargetTemperature", HEAT: "heatTargetTemperature", AUTO: "autoTargetTemperature" };
+
+/** Faixa aceita no modo: o perfil pode ter limites próprios por modo (ex.: aquecer a partir de 16 °C). */
+function tempRange(mode) {
+  const key = MODE_TEMP_KEY[mode];
+  return (key && get(profile, `property.temperature.${key}.value.w`)) || get(profile, "property.temperature.targetTemperature.value.w");
+}
+
+function applyTempRange(mode) {
+  const range = tempRange(mode);
+  const s = $("slider");
+  if (!range) return;
+  const step = range.step ?? Number(s.step);
+  if (Number(s.min) === range.min && Number(s.max) === range.max && Number(s.step) === step) return;
+  s.min = range.min; s.max = range.max; s.step = step;
+  $("min-label").textContent = `${range.min}°`;
+  $("max-label").textContent = `${range.max}°`;
 }
 
 function updateSliderFill() {
@@ -167,30 +218,39 @@ async function refresh(force = false) {
   }
 }
 
-/** Aplica a mudança na tela na hora e envia o comando; se falhar, mostra o erro e relê o estado. */
-async function send(payload, optimistic) {
+/**
+ * Aplica a mudança na tela na hora e envia o comando; se falhar, mostra o erro e relê o estado.
+ * Com `quiet`, quem chamou vai tentar outra coisa: não mostra erro nem relê o estado.
+ */
+async function send(payload, optimistic, { quiet = false } = {}) {
   if (optimistic) { optimistic(st); render(); }
   holdUntil = Date.now() + 6000;
   try {
     await invoke("control", { payload });
     setTimeout(() => refresh(true), 2500);
   } catch (e) {
-    toast(friendlyError(e));
-    holdUntil = 0;
-    refresh(true);
+    if (!quiet) {
+      toast(friendlyError(e));
+      holdUntil = 0;
+      refresh(true);
+    }
     throw e;
   }
 }
 
 async function setTemperature(t) {
   const apply = (s) => { s.temperature.targetTemperature = t; };
+  const mode = get(st, "airConJobMode.currentJobMode");
+  // Alguns modelos só aceitam o alvo específico do modo atual.
+  const modeKey = MODE_TEMP_KEY[mode] || "coolTargetTemperature";
+  const sendModeTarget = () => send({ temperature: { [modeKey]: t, unit: "C" } }, apply).catch(() => {});
+  const generic = get(profile, "property.temperature.targetTemperature.value.w");
+  // Fora da faixa genérica (ex.: 16 °C no aquecer), só o alvo do modo aceita o valor.
+  if (generic && (t < generic.min || t > generic.max)) return sendModeTarget();
   try {
-    await send({ temperature: { targetTemperature: t, unit: "C" } }, apply);
+    await send({ temperature: { targetTemperature: t, unit: "C" } }, apply, { quiet: true });
   } catch {
-    // Alguns modelos só aceitam o alvo específico do modo atual.
-    const mode = get(st, "airConJobMode.currentJobMode");
-    const key = mode === "AUTO" ? "autoTargetTemperature" : mode === "HEAT" ? "heatTargetTemperature" : "coolTargetTemperature";
-    await send({ temperature: { [key]: t, unit: "C" } }, apply).catch(() => {});
+    await sendModeTarget();
   }
 }
 
@@ -519,6 +579,16 @@ $("autostart").onchange = (e) => {
   invoke(e.target.checked ? "plugin:autostart|enable" : "plugin:autostart|disable").catch((err) => toast(String(err)));
 };
 
+$("display-light").onchange = (e) => {
+  const light = e.target.checked ? "ON" : "OFF";
+  send({ display: { light } }, (s) => { s.display = { light }; }).catch(() => {});
+};
+
+$("pat-link").onclick = () => {
+  if (TAURI) invoke("open_pat_site").catch((err) => toast(String(err)));
+  else window.open(PAT_URL, "_blank");
+};
+
 $("token-form").onsubmit = async (e) => {
   e.preventDefault();
   const token = $("token").value.trim();
@@ -557,13 +627,7 @@ async function boot() {
   try {
     const dev = await invoke("get_device");
     profile = { ...dev.profile, alias: get(dev, "info.deviceInfo.alias"), model: get(dev, "info.deviceInfo.modelName") };
-    const range = get(profile, "property.temperature.targetTemperature.value.w");
-    if (range) {
-      const s = $("slider");
-      s.min = range.min; s.max = range.max; s.step = range.step;
-      $("min-label").textContent = `${range.min}°`;
-      $("max-label").textContent = `${range.max}°`;
-    }
+    applyTempRange(get(st, "airConJobMode.currentJobMode"));
     const hasEnergy = (get(dev, "energyProfile.result.property", []) || []).includes("energyUsage");
     $("btn-energy").classList.toggle("hidden", !hasEnergy);
     if (hasEnergy) loadMonthTile();
@@ -591,11 +655,13 @@ function mockInvoke(cmd, args) {
       filterInfo: { filterLifetime: 0, usedTime: 720 }, airFlow: { windStrength: "HIGH", windStrengthDetail: "HIGH" },
       windDirection: { rotateUpDown: true }, operation: { airConOperationMode: "POWER_ON" },
       timer: { relativeStartTimer: "UNSET", relativeStopTimer: "UNSET" }, sleepTimer: { relativeStopTimer: "UNSET" },
+      display: { light: "ON" },
     },
     profile: { property: {
       airConJobMode: { currentJobMode: { mode: ["r", "w"], value: { w: ["COOL", "AUTO", "FAN", "AIR_DRY"] } } },
       airFlow: { windStrength: { mode: ["r", "w"], value: { w: ["LOW", "MID", "HIGH", "AUTO"] } }, windStrengthDetail: { mode: ["r", "w"], value: { w: ["NATURE", "LOW", "MID", "HIGH"] } } },
       windDirection: { rotateUpDown: { mode: ["r", "w"] } },
+      display: { light: { mode: ["r", "w"], value: { w: ["ON", "OFF"] } } },
       temperature: { targetTemperature: { mode: ["r", "w"], value: { w: { min: 18, max: 30, step: 0.5 } } } },
     } },
   };

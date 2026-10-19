@@ -15,7 +15,11 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, PhysicalPosition, Rect, State, WebviewWindow, WindowEvent,
 };
+use tauri_plugin_opener::OpenerExt;
 use thinq::ThinqClient;
+
+/// Única página externa que o app abre: onde se gera o token pessoal.
+const PAT_SITE: &str = "https://connect-pat.lgthinq.com";
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 struct Config {
@@ -126,6 +130,13 @@ fn set_tray(state: State<AppState>, rgba: Vec<u8>, width: u32, height: u32, tool
     Ok(())
 }
 
+/// Abre o site do token no navegador padrão. A URL é fixa no back-end, então a
+/// interface não consegue abrir outros endereços por aqui.
+#[tauri::command]
+fn open_pat_site(app: AppHandle) -> Result<(), String> {
+    app.opener().open_url(PAT_SITE, None::<&str>).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn hide_popup(window: WebviewWindow) {
     let _ = window.hide();
@@ -203,6 +214,7 @@ fn show_popup_default(app: &AppHandle) {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_popup_default(app)))
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -281,6 +293,7 @@ fn main() {
             control,
             energy_usage,
             set_tray,
+            open_pat_site,
             hide_popup,
             quit
         ])

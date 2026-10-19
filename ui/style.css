@@ -79,6 +79,9 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round
 .eco { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; }
 .eco .ico { color: var(--text-2); width: 18px; height: 18px; }
 .eco span { font-weight: 600; font-size: 13px; }
+.toggles { display: flex; flex-direction: column; gap: 6px; }
+.toggles .eco { padding: 7px 12px; }
+.toggles .eco span { flex: 1; }
 
 .switch { appearance: none; width: 42px; height: 24px; border-radius: 12px; background: #3a3a40; position: relative; cursor: pointer; transition: .2s; flex: none; }
 .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: .2s; }
@@ -118,8 +121,9 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px;
 
 /* ---------- rodapé ---------- */
 .foot { margin-top: auto; padding-top: 12px; display: flex; align-items: center; justify-content: space-between; }
-.status { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-2); }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.status { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-2); min-width: 0; flex: 1; }
+#status-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
 .status.ok .dot { background: var(--good); }
 .status.err .dot { background: var(--bad); }
 .icon-btn { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: var(--text-2); }
@@ -179,6 +183,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px;
 .primary:disabled { opacity: .6; }
 #form-msg.err { color: var(--bad); } #form-msg.ok { color: var(--good); }
 .row { display: flex; justify-content: space-between; align-items: center; padding: 12px; margin-top: 16px; }
+.link { color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.link:hover { color: var(--text); }
 .info { margin-top: 14px; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 12px; }
 .info dt { color: var(--muted); } .info dd { text-align: right; color: var(--text-2); }
 .ghost { margin-top: auto; padding: 10px; border-radius: 11px; color: var(--bad); border: 1px solid #3a2a2c; }
